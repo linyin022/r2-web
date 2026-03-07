@@ -1,3 +1,5 @@
+/// <reference types="node" />
+
 import { defineConfig } from 'bumpp'
 import path from 'node:path'
 import fs from 'node:fs/promises'
