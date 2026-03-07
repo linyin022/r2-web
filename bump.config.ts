@@ -5,7 +5,7 @@ import pkg from './package.json' with { type: 'json' }
 
 export default defineConfig({
   async execute() {
-    const constantsFile = path.resolve(import.meta.dirname, '../js/constants.js')
+    const constantsFile = path.resolve(import.meta.dirname, './src/js/constants.js')
 
     let constantsString = await fs.readFile(constantsFile, 'utf-8')
 
