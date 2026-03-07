@@ -617,6 +617,8 @@ class App {
 
       this.#ui.hideContextMenu()
 
+      console.log('Context menu action:', action, 'on', key)
+
       switch (action) {
         case 'preview':
           /** @type {FilePreview} */ this.#preview.preview({

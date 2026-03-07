@@ -3,7 +3,7 @@ import { AUDIO_RE, IMAGE_RE, TEXT_RE, VIDEO_RE } from './constants.js'
 import { t } from './i18n.js'
 import { R2Client } from './r2-client.js'
 import { UIManager } from './ui-manager.js'
-import { $, formatDate, getErrorMessage, getFileName, getMimeType } from './utils.js'
+import { $, formatDate, getErrorMessage, extractFileName, getMimeType } from './utils.js'
 
 class FilePreview {
   /** @type {R2Client} */
@@ -38,7 +38,7 @@ class FilePreview {
     const filename = $('#preview-filename')
     const copyBtn = /** @type {HTMLElement} */ ($('#preview-copy'))
 
-    filename.textContent = getFileName(key)
+    filename.textContent = extractFileName(key)
     body.innerHTML = '<div style="color:var(--text-tertiary)">Loading...</div>'
     footer.innerHTML = ''
     footer.classList.remove('bordered')
@@ -63,7 +63,7 @@ class FilePreview {
         const url = this.#r2.getPublicUrl(key) ?? (await this.#r2.getPresignedUrl(key))
         this.#currentImageUrl = url
         this.#currentCopyType = 'image'
-        body.innerHTML = `<img src="${url}" alt="${getFileName(key)}">`
+        body.innerHTML = `<img src="${url}" alt="${extractFileName(key)}">`
         copyBtn.dataset.tooltip = t('copyLink')
         copyBtn.hidden = false
       } else if (VIDEO_RE.test(key)) {
@@ -94,7 +94,7 @@ class FilePreview {
   async downloadCurrent() {
     if (!this.#currentKey) return
     try {
-      const filename = getFileName(this.#currentKey)
+      const filename = extractFileName(this.#currentKey)
       const url = await this.#r2.getDownloadUrl(this.#currentKey, filename)
       const a = document.createElement('a')
       a.href = url

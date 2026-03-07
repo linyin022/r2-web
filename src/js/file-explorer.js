@@ -3,7 +3,7 @@ import { IMAGE_RE } from './constants.js'
 import { t } from './i18n.js'
 import { R2Client } from './r2-client.js'
 import { UIManager } from './ui-manager.js'
-import { $, formatDate, getErrorMessage, getFileIconSvg, getFileName, getFileType } from './utils.js'
+import { $, formatDate, getErrorMessage, getFileIconSvg, extractFileName, getFileType } from './utils.js'
 
 /** @typedef {{ key: string; isFolder: boolean; size?: number; lastModified?: string }} FileItem */
 /** @typedef {{ data: { folders: FileItem[], files: FileItem[], isTruncated: boolean, nextToken: string }, ts: number }} CacheEntry */
@@ -161,7 +161,7 @@ class FileExplorer {
     const { true: folders = [], false: files = [] } = Object.groupBy(items, i => String(i.isFolder))
 
     /** @type {(a: FileItem, b: FileItem) => number} */
-    const byName = (a, b) => getFileName(a.key).localeCompare(getFileName(b.key))
+    const byName = (a, b) => extractFileName(a.key).localeCompare(extractFileName(b.key))
 
     /** @type {Record<string, (a: FileItem, b: FileItem) => number>} */
     const comparators = {
@@ -209,7 +209,7 @@ class FileExplorer {
       }
     }
 
-    const name = getFileName(item.key)
+    const name = extractFileName(item.key)
     const isImage = !item.isFolder && IMAGE_RE.test(item.key)
 
     let iconHtml

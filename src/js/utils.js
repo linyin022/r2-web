@@ -30,7 +30,7 @@ function formatDate(dateStr) {
 }
 
 /** @param {string} key @returns {string} */
-function getFileName(key) {
+function extractFileName(key) {
   const parts = key.replace(/\/$/, '').split('/')
   return parts[parts.length - 1]
 }
@@ -239,7 +239,7 @@ async function applyFilenameTemplate(template, file) {
 export {
   $,
   formatDate,
-  getFileName,
+  extractFileName,
   getFileType,
   getErrorMessage,
   getFileIconSvg,

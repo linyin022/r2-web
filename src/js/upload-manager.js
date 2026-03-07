@@ -10,7 +10,7 @@ import { ConfigManager } from './config-manager.js'
 import { FileExplorer } from './file-explorer.js'
 import { R2Client } from './r2-client.js'
 import { UIManager } from './ui-manager.js'
-import { $, applyFilenameTemplate, computeFileHash, getFileName, getMimeType } from './utils.js'
+import { $, applyFilenameTemplate, computeFileHash, extractFileName, getMimeType } from './utils.js'
 
 /** @typedef {{ accountId?: string; accessKeyId?: string; secretAccessKey?: string; bucket?: string; filenameTpl?: string; filenameTplScope?: string; customDomain?: string; compressMode?: string; compressLevel?: string; tinifyKey?: string }} AppConfig */
 
@@ -392,7 +392,7 @@ class UploadManager {
       } else if (pathStrategy === 'template') {
         key = processedName
       } else if (pathStrategy === 'prefix-basename') {
-        key = currentPrefix + getFileName(processedName)
+        key = currentPrefix + extractFileName(processedName)
       } else {
         key = currentPrefix + processedName
       }
@@ -411,7 +411,7 @@ class UploadManager {
             skippedCount++
             continue
           }
-          const choice = await this.#ui.confirmOverwrite(getFileName(key), files.length > 1)
+          const choice = await this.#ui.confirmOverwrite(extractFileName(key), files.length > 1)
           if (choice === 'skip') { skippedCount++; continue }
           if (choice === 'skip-all') { conflictDecision = 'skip-all'; skippedCount++; continue }
           if (choice === 'overwrite-all') conflictDecision = 'overwrite-all'

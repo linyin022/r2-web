@@ -4,7 +4,7 @@ import { ConfigManager } from './config-manager.js'
 import { FileExplorer } from './file-explorer.js'
 import { R2Client } from './r2-client.js'
 import { UIManager } from './ui-manager.js'
-import { getErrorMessage, getFileName } from './utils.js'
+import { getErrorMessage, extractFileName } from './utils.js'
 
 class FileOperations {
   /** @type {R2Client} */
@@ -26,8 +26,9 @@ class FileOperations {
 
   /** @param {string} key @param {boolean} isFolder */
   async rename(key, isFolder) {
-    const oldName = getFileName(key)
+    const oldName = extractFileName(key)
     const newName = await this.#ui.prompt(t('renameTitle'), t('renameLabel'), oldName, {
+      hint: t('r2CopyHint'),
       validate: v => {
         const illegal = v.match(/[/\\:*?"<>|\x00-\x1F]/g)
         if (illegal) return t('renameInvalidChars', { chars: [...new Set(illegal)].join('  ') })
@@ -69,12 +70,21 @@ class FileOperations {
 
   /** @param {string} key @param {boolean} isFolder */
   async copy(key, isFolder) {
-    const name = getFileName(key)
+    const name = extractFileName(key)
     const currentPrefix = this.#explorer.currentPrefix
+
     const dest = await this.#ui.prompt(
       t('copyTitle'),
       t('copyLabel'),
       currentPrefix + name + (isFolder ? '/' : ''),
+      {
+        hint: isFolder ? t('copyFolderHint') : undefined,
+        validate: v => {
+          const illegal = v.match(/[\\:*?"<>|\x00-\x1F]/g)
+          if (illegal) return t('pathInvalidChars', { chars: [...new Set(illegal)].join('  ') })
+          return null
+        },
+      },
     )
     if (!dest) return
 
@@ -108,14 +118,30 @@ class FileOperations {
 
   /** @param {string} key @param {boolean} isFolder */
   async move(key, isFolder) {
-    const name = getFileName(key)
+    const name = extractFileName(key)
     const currentPrefix = this.#explorer.currentPrefix
-    const dest = await this.#ui.prompt(
-      t('moveTitle'),
-      t('moveLabel'),
-      currentPrefix + name + (isFolder ? '/' : ''),
-    )
-    if (!dest) return
+
+    /** @param {string} v */
+    const resolveDest = v => {
+      const folder = v === '' ? '' : v.endsWith('/') ? v : v + '/'
+      return folder + name + (isFolder ? '/' : '')
+    }
+
+    const destFolder = await this.#ui.prompt(t('moveTitle'), t('moveLabel'), currentPrefix, {
+      hint: t('r2CopyHint'),
+      preview: v => '→ ' + resolveDest(v),
+      validate: v => (resolveDest(v) === key ? t('moveSamePath') : null),
+    })
+
+    console.log(key, isFolder, name,currentPrefix, destFolder)
+
+    if (destFolder === null) return
+
+    const dest = resolveDest(destFolder)
+
+    if (dest === key) return
+
+    console.log('Moving', key, 'to', dest, 'isFolder:', isFolder)
 
     try {
       this.#ui.toast(t('moving', { name, destName: dest }), 'info')
@@ -125,8 +151,8 @@ class FileOperations {
           key,
           async (/** @type {string} */ srcKey) => {
             const relative = srcKey.substring(key.length)
-            const destKey = (dest.endsWith('/') ? dest : dest + '/') + relative
-            await this.#r2.copyObject(srcKey, destKey)
+            console.log('Moving', srcKey, 'to', dest + relative)
+            await this.#r2.copyObject(srcKey, dest + relative)
           },
           true,
         )
@@ -148,7 +174,7 @@ class FileOperations {
 
   /** @param {string} key @param {boolean} isFolder */
   async delete(key, isFolder) {
-    const name = getFileName(key)
+    const name = extractFileName(key)
     const msg = isFolder ? t('deleteFolderConfirmMsg', { name }) : t('deleteConfirmMsg', { name })
 
     const ok = await this.#ui.confirm(t('deleteConfirmTitle'), msg)
@@ -186,7 +212,7 @@ class FileOperations {
   /** @param {string} key */
   async download(key) {
     try {
-      const url = await this.#r2.getDownloadUrl(key, getFileName(key))
+      const url = await this.#r2.getDownloadUrl(key, extractFileName(key))
       const a = document.createElement('a')
       a.href = url
       document.body.appendChild(a)
@@ -204,7 +230,7 @@ class FileOperations {
 
   /** @param {string} key @param {'url'|'markdown'|'html'|'presigned'} format */
   async copyAs(key, format) {
-    const name = getFileName(key)
+    const name = extractFileName(key)
     const isImage = IMAGE_RE.test(key)
 
     let url
@@ -264,7 +290,7 @@ class FileOperations {
       this.#ui.toast(t('shareQrNeedDomain'), 'error')
       return
     }
-    await this.#ui.showFileQrDialog(url, getFileName(key))
+    await this.#ui.showFileQrDialog(url, extractFileName(key))
   }
 
   /** @param {string} prefix @param {(key: string) => Promise<void>} operation @param {boolean} deleteSource */

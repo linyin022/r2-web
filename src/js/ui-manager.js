@@ -1,7 +1,7 @@
 import QRCode from 'qrcode'
 import { IMAGE_RE, TOAST_DURATION, THEME_KEY } from './constants.js'
 import { t } from './i18n.js'
-import { $, getFileName } from './utils.js'
+import { $, extractFileName } from './utils.js'
 
 class UIManager {
   initTheme() {
@@ -209,20 +209,31 @@ class UIManager {
    * @param {string} title
    * @param {string} label
    * @param {string} [defaultValue]
-   * @param {{ validate?: (v: string) => string | null }} [options]
+   * @param {{ validate?: (v: string) => string | null, hint?: string, preview?: (v: string) => string }} [options]
    * @returns {Promise<string | null>}
    */
-  prompt(title, label, defaultValue = '', { validate } = {}) {
+  prompt(title, label, defaultValue = '', { validate, hint, preview } = {}) {
     return new Promise(resolve => {
       const dialog = /** @type {HTMLDialogElement} */ ($('#prompt-dialog'))
       const form = $('#prompt-form')
       const input = /** @type {HTMLInputElement} */ ($('#prompt-input'))
       const errorEl = $('#prompt-error')
+      const hintEl = $('#prompt-hint')
+      const previewEl = $('#prompt-preview')
       $('#prompt-title').textContent = title
       $('#prompt-label').textContent = label
       input.value = defaultValue
       errorEl.textContent = ''
       errorEl.hidden = true
+      hintEl.textContent = hint ?? ''
+      hintEl.hidden = !hint
+
+      const updatePreview = () => {
+        if (!preview) { previewEl.hidden = true; return }
+        previewEl.textContent = preview(input.value)
+        previewEl.hidden = false
+      }
+      updatePreview()
 
       /** @type {string | null} */
       let result = null
@@ -236,7 +247,7 @@ class UIManager {
         return !err
       }
 
-      const onInput = () => checkValid()
+      const onInput = () => { checkValid(); updatePreview() }
 
       /** @param {Event} e */
       const onSubmit = e => {
@@ -258,6 +269,7 @@ class UIManager {
         input.removeEventListener('input', onInput)
         $('#prompt-cancel').removeEventListener('click', onCancel)
         dialog.removeEventListener('click', onBackdropClick)
+        previewEl.hidden = true
         resolve(result)
       }
 
@@ -492,7 +504,7 @@ class UIManager {
       const trimSlashes = str => str.replace(/^\/+|\/+$/g, '')
       const prefixClean = trimSlashes(currentPrefix)
       const nameClean = processedName.replace(/^\/+/, '')
-      const baseName = getFileName(processedName).replace(/^\/+/, '')
+      const baseName = extractFileName(processedName).replace(/^\/+/, '')
       const prefixLabel = prefixClean ? `/${prefixClean}` : '/'
 
       const templatePath = '/' + nameClean
